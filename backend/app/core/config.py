@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "foodmate-dev-secret-change-in-production"
     JWT_EXPIRE_DAYS: int = 7
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
-    AI_PROVIDER: str = "rule"  # rule | openai | anthropic | gemini | local
-    OPENAI_API_KEY: str = ""
+    CORS_ORIGIN_REGEX: str = r"https://.*\.vercel\.app"  # covers production + preview deployments
+    AI_PROVIDER: str = "rule"  # rule | openai | anthropic | gemini | local    OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     DEMO_MODE: bool = True

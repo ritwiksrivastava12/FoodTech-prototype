@@ -16,7 +16,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="FoodMate API", version="0.1.0",
                   description="Personal food decision platform: DECIDE → CHECK → COMPARE → COOK/ORDER → TRACK")
     app.add_middleware(CORSMiddleware,
-                       allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
+                       allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
+                       allow_origin_regex=settings.CORS_ORIGIN_REGEX or None,
                        allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     app.include_router(auth_api.router)
     app.include_router(auth_api.router2)
