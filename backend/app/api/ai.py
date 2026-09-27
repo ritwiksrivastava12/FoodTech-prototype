@@ -31,10 +31,35 @@ def save_mood(body: dict, uid: int = Depends(get_current_user_id), db: Session =
     return {"ok": True}
 
 
+# Simple per-user rate limit: protects the free-model quota from accidental/Consensus misuse.
+# {user_id: [timestamps]} — in-memory is fine for a prototype; move to Redis in production.
+_rate_buckets: dict[int, list[float]] = {}
+
+
+def allow_request(user_id: int) -> bool:
+    import time
+    from app.core.config import settings
+    now = time.time()
+    bucket = _rate_buckets.get(user_id, [])
+    bucket = [t for t in bucket if now - t < 3600]
+    if len(bucket) >= max(1, settings.AI_RATE_LIMIT_PER_HOUR):
+        _rate_buckets[user_id] = bucket
+        return False
+    bucket.append(now)
+    _rate_buckets[user_id] = bucket
+    return True
+
+
 @router.post("/ai/chat")
 def chat(body: ChatIn, uid: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    from fastapi import HTTPException
+    if not allow_request(uid):
+        raise HTTPException(status_code=429, detail="You've hit this hour's AI limit. Your recommendations below still work — try again soon.")
     meals = db.query(Meal).all()
     prof = profile_dict(db, uid)
+    from app.models.entities import User
+    me = db.query(User).filter(User.id == uid).first()
+    prof = {**prof, "name": (me.name if me else "friend").split(" ")[0]}
     inv, items = inventory_map(db, uid)
     from app.api.meals import _alias_map
     inv = _alias_map(inv)
@@ -61,7 +86,18 @@ def chat(body: ChatIn, uid: int = Depends(get_current_user_id), db: Session = De
     if intent.get("max_time"):
         summary_bits.append(f"time<={intent['max_time']}m")
     summary = ", ".join(summary_bits) or "your profile"
-    reply = craft_reply(body.message, recs, summary)
+    from app.services.ai_orchestrator import build_user_context
+    fav_rows = db.query(Favorite).filter(Favorite.user_id == uid).all()
+    fav_names = [(db.query(Meal).filter(Meal.id == f.meal_id).first().name if f.meal_id else (f.name or ""))
+                 for f in fav_rows]
+    inv_items = [{"name": it.name, "display": it.display, "qty": it.qty, "unit": it.unit}
+                 for it in items if float(it.qty or 0) > 0]
+    past = db.query(Conversation).filter(Conversation.user_id == uid).order_by(Conversation.id.desc()).limit(6).all()
+    user_context = build_user_context(
+        prof, inv_items, hist,
+        [n for n in fav_names if n], ctx["meal_type"],
+        [{"role": c.role, "content": c.content} for c in reversed(past)])
+    reply = craft_reply(body.message, recs, summary, user_context)
     db.add(Conversation(user_id=uid, role="user", content=body.message))
     db.add(Conversation(user_id=uid, role="assistant", content=reply,
                         meta={"rec_ids": [r["id"] for r in recs]}))

@@ -25,11 +25,6 @@ export default function AIPage() {
       const r = await api('/api/ai/chat', { method: 'POST', body: { message: msg, servings: 2 } });
       setMsgs(m => [...m, { role: 'assistant', content: r.reply }]);
       setRecs(r.recommendations || []);
-      try {
-        const u = new SpeechSynthesisUtterance(r.reply.replace(/[*#]/g, '').slice(0, 350));
-        window.speechSynthesis?.cancel();
-        window.speechSynthesis?.speak(u);
-      } catch {}
     } catch (e) { setMsgs(m => [...m, { role: 'assistant', content: 'Error: ' + e.message }]); }
     setBusy(false);
   };

@@ -43,8 +43,11 @@ class LLMAdapter:
     def status() -> dict:
         from app.core.config import settings
         configured = {"openai": bool(settings.OPENAI_API_KEY), "anthropic": bool(settings.ANTHROPIC_API_KEY),
-                      "gemini": bool(settings.GEMINI_API_KEY), "rule": True}
-        return {"active": settings.AI_PROVIDER, "configured": configured, "demo": settings.DEMO_MODE}
+                      "gemini": bool(settings.GEMINI_API_KEY),
+                      "openrouter": bool(settings.OPENROUTER_API_KEY), "rule": True}
+        return {"active": settings.AI_PROVIDER,
+                "model": settings.AI_MODEL or ("nvidia/nemotron-3-ultra-550b-a55b:free" if settings.AI_PROVIDER == "openrouter" else ""),
+                "configured": configured, "demo": settings.DEMO_MODE}
 
 
 grocery = GroceryAdapter()

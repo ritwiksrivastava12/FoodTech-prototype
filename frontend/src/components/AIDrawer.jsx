@@ -18,15 +18,6 @@ export default function AIDrawer({ onClose, initial = '' }) {
     }).catch(() => {});
   }, []);
 
-  const speak = (text) => {
-    try {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text.replace(/[*#]/g, '').slice(0, 400));
-      window.speechSynthesis.speak(u);
-    } catch {}
-  };
-
   const send = async (text) => {
     const msg = (text ?? input).trim();
     if (!msg || busy) return;
@@ -37,7 +28,6 @@ export default function AIDrawer({ onClose, initial = '' }) {
       const r = await api('/api/ai/chat', { method: 'POST', body: { message: msg, servings: 2 } });
       setMsgs(m => [...m, { role: 'ai', content: r.reply }]);
       setRecs(r.recommendations || []);
-      speak(r.reply);
     } catch (e) {
       setMsgs(m => [...m, { role: 'ai', content: 'Sorry, I hit a snag: ' + e.message + '. Please retry.' }]);
     }
