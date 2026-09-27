@@ -1,0 +1,39 @@
+# Render blueprint: Postgres + FastAPI backend + static React frontend.
+# Usage: push this repo to GitHub, then Render → New → Blueprint → select repo.
+# After first deploy, confirm the two URLs below match your actual service URLs
+# (Render adds a suffix if a name is taken) and redeploy if you changed them.
+databases:
+  - name: foodmate-db
+    plan: free
+
+services:
+  - type: web
+    name: foodmate-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: foodmate-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://foodmate-web.onrender.com
+      - key: AI_PROVIDER
+        value: rule
+      - key: DEMO_MODE
+        value: 'true'
+
+  - type: web
+    name: foodmate-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        value: https://foodmate-api.onrender.com
