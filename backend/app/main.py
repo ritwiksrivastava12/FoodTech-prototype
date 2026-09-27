@@ -31,6 +31,26 @@ def create_app() -> FastAPI:
         return {"ok": True, "service": "foodmate", "demo": settings.DEMO_MODE,
                 "ai_provider": settings.AI_PROVIDER}
 
+    # All-in-one hosting (e.g. Hugging Face Spaces): serve the React build
+    # from ./static when present, so one container runs frontend+backend+DB.
+    import os as _os
+    from fastapi.responses import FileResponse as _File, JSONResponse as _JSON
+    from fastapi.staticfiles import StaticFiles as _Static
+    _static = _os.path.join(_os.path.dirname(__file__), "..", "static")
+    if _os.path.isdir(_static):
+        _assets = _os.path.join(_static, "assets")
+        if _os.path.isdir(_assets):
+            app.mount("/assets", _Static(directory=_assets), name="assets")
+
+        @app.get("/{path:path}")
+        def spa(path: str):
+            if path.startswith("api/") or path in ("api", "docs", "openapi.json"):
+                return _JSON({"detail": "Not found"}, status_code=404)
+            fp = _os.path.join(_static, path)
+            if path and _os.path.isfile(fp):
+                return _File(fp)
+            return _File(_os.path.join(_static, "index.html"))
+
     @app.on_event("startup")
     def startup():
         Base.metadata.create_all(bind=engine)

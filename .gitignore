@@ -1,0 +1,8 @@
+.env
+foodmate.db
+static/
+__pycache__/
+.venv/
+node_modules/
+dist/
+*.pyc
