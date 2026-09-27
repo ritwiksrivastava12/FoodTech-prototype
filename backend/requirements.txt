@@ -7,6 +7,7 @@ python-multipart==0.0.20
 pyjwt==2.10.1
 email-validator==2.2.0
 psycopg2-binary==2.9.10  # Postgres driver (used when DATABASE_URL points to Postgres in production)
+mangum==0.19.0  # ASGI-to-serverless adapter for running FastAPI on Vercel
 pytest==8.3.4
 httpx==0.28.1
 python-dateutil==2.9.0
